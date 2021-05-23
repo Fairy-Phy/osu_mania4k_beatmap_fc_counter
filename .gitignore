@@ -1,0 +1,5 @@
+config.json
+*.log
+ranked_list.txt
+*.xlsx
+node_modules

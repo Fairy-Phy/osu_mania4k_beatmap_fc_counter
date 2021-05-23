@@ -1,0 +1,16 @@
+{
+  "name": "osu_mania4k_beatmap_fc_counter",
+  "version": "0.0.0",
+  "description": "osu!mania 4k beatmap fc counter",
+  "main": "fc_counter.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "(Fairy)Phy, Secineralyr",
+  "license": "MIT",
+  "dependencies": {
+    "request": "^2.88.2",
+    "request-promise": "^4.2.6",
+    "xlsx": "^0.17.0"
+  }
+}
