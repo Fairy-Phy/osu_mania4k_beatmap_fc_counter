@@ -2,6 +2,8 @@ const request = require("request-promise");
 const fs = require("fs").promises;
 const XLSX = require("xlsx");
 const apitoken = require("./config.json").apitoken;
+let start_date = new Date();
+const string_start_date = save => save ? `${start_date.getFullYear()}-${start_date.getMonth() + 1}-${start_date.getDate()}` : `${start_date.getFullYear()}-${start_date.getMonth() + 1}-${start_date.getDate()} ${start_date.getHours()}:${start_date.getMinutes()}:${start_date.getSeconds()}`;
 
 const Sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
 
@@ -68,14 +70,19 @@ const GetFCCount = async (beatmapid, star_rate) => {
 	let ranking_maxcombo = 0;
 	res_json.forEach(json => {
 		const json_combo = Number(json.maxcombo);
-		if (json_combo > ranking_maxcombo) ranking_maxcombo = json_combo;
+		const json_countmiss = Number(json.countmiss);
+		if (json_countmiss == 0 && json_combo > ranking_maxcombo) ranking_maxcombo = json_combo;
 	});
+
+	if (ranking_maxcombo == 0) return 0;
 
 	let FC_count = 0;
 	for (let i = 0; i < res_json.length; i++) {
 		const json = res_json[i];
+		if (new Date(`${json.date} UTC`) > start_date) continue;
+
 		if (json.rank.startsWith("X")) FC_count++;
-		else if (Number(json.countmiss) == 0 && (ranking_maxcombo - Number(star_rate) * 200) <= Number(json.maxcombo)) FC_count++; // 50 >= 1 or 100 >= 1 or 200 >= 1
+		else if (Number(json.countmiss) == 0 && (ranking_maxcombo - Math.min(600, Number(star_rate) * 120) /* Number(star_rate) * 200 */) <= Number(json.maxcombo)) FC_count++; // 50 >= 1 or 100 >= 1 or 200 >= 1
 	}
 
 	return FC_count;
@@ -88,7 +95,7 @@ let cell_row = 5;
 const SaveXLSX = () => {
 	sheet1["!ref"] = `A1:E${cell_row}`;
 	book.Sheets["Sheet1"] = sheet1;
-	XLSX.writeFile(book, "./export.xlsx", { type: "xlsx" });
+	XLSX.writeFile(book, `./${string_start_date(true)}_Result.xlsx`, { type: "xlsx" });
 };
 
 process.on("SIGINT", () => {
@@ -97,12 +104,21 @@ process.on("SIGINT", () => {
 });
 
 (async () => {
+	console.log("=====================================\n||                                 ||\n|| osu!mania 4k Beatmap FC Counter ||\n||                                 ||\n=====================================");
+	console.log();
+
 	const read_text = await fs.readFile("./ranked_list.txt", { encoding: "utf8", flag: "r" });
 	const beatmapsetids = read_text.split("\n");
 	console.log(beatmapsetids);
 
+	start_date = new Date();
+	console.log(`Start Date: ${string_start_date(false)}`);
+	sheet1["E3"] = { v: `Date to be counted: ${string_start_date(false)}`, t: 's', w: `Date to be counted: ${string_start_date(false)}` };
+
 	for (let i = 0; i < beatmapsetids.length; i++) {
 		const beatmapsetid = beatmapsetids[i];
+		if (beatmapsetid == "") continue;
+
 		console.log(`Current BeatmapSetID: ${beatmapsetid}`);
 		const beatmap_info = await GetBeatmapID(beatmapsetid);
 
